@@ -348,6 +348,82 @@ class Runner1 implements Runnable {
 
 
 
+#### 线程的合理终止方法
+
+```java
+// 通过使用 变量让线程return结束
+package testStudy;
+
+public class ThreadTest1 {
+
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		MyThread mt1 = new MyThread();
+		Thread thread = new  Thread(mt1);
+		thread.setName("t");
+		thread.start();
+		
+		
+		try {
+			Thread.sleep(3000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		mt1.run = false;
+	}
+
+}
+
+class MyThread implements Runnable {
+	
+	public Boolean run = true;
+	@Override
+	public void run( ) {
+		
+		for (int i = 0; i < 10; i++) {
+			if (run) {
+				System.out.println(Thread.currentThread().getName()+ "--->" + i);
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			} else {
+				return;
+			}
+		}
+		
+	}
+	
+}
+```
+
+
+
+
+
+### 线程优先级
+
+#### Thread.setPriority()
+
+`Thread.setPriority()` 设置线程优先级，优先级较高的，只是抢到的cpu时间片相对多一些
+
+
+
+### 线程合并
+
+#### Thread.join()
+
+线程中join方法的意思是把指定的线程加入到当前线程，即将两个交替执行的线程合并为顺序执行的线程。
+
+比如在主线程B中，子线程A调用了join()方法，意思是说直到线程A执行完毕后，线程B才会继续执行。
+
+同理，如果子线程A调用了join(10)方法，意思是说等线程A执行10毫秒后，线程B才会继续执行。
+
+
+
 ### 线程的同步
 
 #### 锁线程
@@ -465,4 +541,22 @@ https://raw.githubusercontent.com/chuerFeng/pictureBed/master
 ![](https://github.com/img/20200925183955.png)
 
 发
+
+
+
+### 线程安全
+
+1. 尽量使用局部变量代替“实例变量和静态变量”。
+2. 如果必须是实例变量，那么可以考虑创建多个对象。一个线程对应一个对象，100个线程对应100个对象，对象不共享，就没数据安全问题了。
+3. 如果不能使用局部变量，对象也不能创建多个。那就只能使用 `synchronized`了。线程同步机制。
+
+
+
+### 守护线程
+
+### 定时器
+
+### 实现线程的第三种方式
+
+### wait和notify
 
