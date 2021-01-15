@@ -560,3 +560,292 @@ https://raw.githubusercontent.com/chuerFeng/pictureBed/master
 
 ### wait和notify
 
+
+
+## 扩展
+
+
+
+### 反射机制
+
+#### 作用
+
+通过java语言最后这个你的反射机制，可以操作字节码文件
+
+```java
+package testStudy;
+
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FilterReader;
+import java.io.IOException;
+import java.util.Properties;
+
+/*
+ * 验证反射机制的灵活性
+ * 	java代码写一遍，再不改java源代码的基础上，可以做到不同对象的实例化
+ * 	非常灵活 (符合OCP开闭原则，对扩展开放，对修改关闭)
+ *  高级框架的原理都使用了反射机制，所以反射机制还是很重要的
+ * */
+public class ThreadTest3 {
+
+	public static void main(String[] args) {
+
+		
+		// 这种方法写死了，只能创建一个User类型的对象
+		User user = new User();
+		
+		
+		// 以下代码灵活，代码不需要改动，可以修改配置文件，可以创建出不同的实例对象
+		try {
+			// 通过IO流读取classInfo.properties文件
+			FileReader reader = new FileReader("classInfo.properties");
+			Properties pro = new Properties();
+			
+			pro.load(reader);
+			reader.close();
+			
+			
+			String className = pro.getProperty("className");
+			
+			Class c = Class.forName(className);			
+			Object obj = c.newInstance();
+			
+			System.out.println(obj);
+			
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+}
+
+```
+
+
+
+#### 在java.lang,reflect.*包下
+
+#### 相关类
+
+java.lang.Class 代表字节码文件，代表一个类型
+
+java.land.reflect.Method 代表字节码中的方法字节码
+
+java.land.reflect.Field 代表字节码中的属性字节码
+
+java.land.reflect.Constructor 代表字节码中的构造方法字节码
+
+```java
+java.land.Class;
+public class User {	
+	int no;   // Field
+   
+    public User(){}  // Constructor
+    
+    public User(int no) {
+        this.no = no
+    }
+
+    public void setNo(int no) {
+        // Method
+		this.no = no;
+    }
+    
+    public getNo() {
+    	return no;
+    }
+}
+```
+
+#### 获取class的三种方式
+
+##### Class.forName()
+
+```java
+public claass ReflectTest01 {
+	public static void main(String [] args) {
+		/*
+        Class.forName()
+			1. 静态方法
+			2. 方法的参数是一个字符串
+			3. 字符串需要的是一个完整的类名
+			4. 完整类名必须带有包名。java.lang包也不能省略
+		*/
+        
+        try {
+            Class c1 = Class.forName("java.lang.String"); // c1代表String.class类型(class文件)
+            Class c2 = Class.forName("java.util.Date"); // c2代表Date类型 
+        } catch( ClassNotFoundException e) {
+            e.printStackTace();
+        }
+	}
+}
+```
+
+
+
+###### forName() 只让一个类的静态代码块执行
+
+**重点：**
+
++ 如果只希望一个类的静态代码块执行，其他代码一律不执行，可以使用Class.forName();
++ 这个方法会导致类加载，类加载时，静态代码块执行
+
+```java
+public claass ReflectTest04 {
+	public static void main(String [] args) {
+        try {
+            Class.forName("java.lang.String")
+        } catch( ClassNotFoundException e) {
+			e.prontStackTrace()
+        }
+	}
+}
+class MyClass {
+	// 静态代码块在类加载时执行，只加载一次
+	static {
+		System.out.println("MyClass类的静态代码块执行了")
+	}
+}
+```
+
+
+
+
+
+##### getClass()
+
+![](https://raw.githubusercontent.com/chuerFeng/pictureBed/master/img/20210115151217.png)
+
+```java
+public claass ReflectTest01 {
+	public static void main(String [] args) {
+		/*
+	      "".getClass()
+          java任何一个对象都有一个方法: getClass()
+		*/
+        
+        String s = "abc";
+        Class x = s.getClass(); // x代表String.class字节码文件，x代表String类型
+        System.out..print(c1 == x) // true (==判断对象是否是同一个内存地址)
+	}
+}
+```
+
+
+
+##### .class属性
+
+```java
+Class z = String.class;
+Class k = Date.class;
+Class x = int.class;
+Class z = Double.class;
+
+```
+
+
+
+
+
+### 获取路径
+
+**注意：**
+
+前提： 这个文件必须在类路径下
+
+什么是类路径？ 文件在src下的都是类路径
+
+src是类的根路径
+
+![](https://raw.githubusercontent.com/chuerFeng/pictureBed/master/img/20210115174357.png)
+
+```java
+String path = Thread.currentThread().getContextClassLoader().getResource("com/bjxxxxx/java/bean/db.progerties").getPath()
+```
+
+
+
+
+
+### 资源绑定器 ResourceBundle
+
+java,util包下提供了一个资源绑定器，便于获取属性配置文件中的内容。
+
+使用以下这种方式的时候，属性配置文件xxx.properties文件，并且这个文件必须在类路径下。
+
+文件扩展名也必须是properties
+
+```java
+public class ThreadTest4 {
+	
+	public static void main( String [] args ) {
+		// 资源绑定器 只能绑定xxx.properties文件，并且这个文件必须在类路径下，文件扩展名也必须是 properties
+        // 在写路径时，后面的扩展名不能写
+		ResourceBundle bundle = ResourceBundle.getBundle("calssInfo");
+		
+		String name = bundle.getString("className");
+		System.out.println(name);
+	}
+}
+
+```
+
+
+
+### 类加载器
+
+#### 什么是类加载器？
+
+专门负责加载类的命令 / 工具
+
+classLoader
+
+#### JDK自带了3个类加载器
+
++ 启动类加载器
++ 扩展类加载器
++ 应用类加载器
+
+#### 假设有这样一段代码
+
+```
+String  s = "abc";
+```
+
+1. 代码在开始执行之前，会将所需要的类全部加载到JVM中。
+
+2. 通过类加载器的加载，看到以上代码类加载器会找String.class文件，找到就加载，那么是怎么加载的呢？
+
+   1. **首先通过“启动类加载器”加载**
+
+      启动类加载器专门加载 java\jdk1.8.0\jre\lib\rt
+
+      rt.jar中都是JDK最核心的类库
+
+   2. 如果“启动类加载器”找不到
+
+      **会通过“扩展类加载器”**
+
+      扩展类加载器专门加载 java\jdk1.8.0\jre\lib\ext\
+
+   3. 如果“扩展类加载器”找不到
+
+      **会通过“应用类加载器”加载**
+
+      应用类加载器专门加载： classpath(window属性环境变量)中的jar包(class文件)
+
