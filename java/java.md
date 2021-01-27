@@ -283,7 +283,7 @@ class T implements Serializable {
 
 ### 声明方式
 
-	#### 第一种
+#### 第一种
 
  + 定义线程类实现Runnable接口
 
@@ -562,15 +562,15 @@ https://raw.githubusercontent.com/chuerFeng/pictureBed/master
 
 
 
-## 扩展
 
 
+## 反射机制
 
-### 反射机制
+### 作用
 
-#### 作用
+通过java语言的反射机制，可以操作字节码文件
 
-通过java语言最后这个你的反射机制，可以操作字节码文件
+让程序更灵活
 
 ```java
 package testStudy;
@@ -600,7 +600,7 @@ public class ThreadTest3 {
 		try {
 			// 通过IO流读取classInfo.properties文件
 			FileReader reader = new FileReader("classInfo.properties");
-			Properties pro = new Properties();
+			  pro = new Properties();
 			
 			pro.load(reader);
 			reader.close();
@@ -609,6 +609,7 @@ public class ThreadTest3 {
 			String className = pro.getProperty("className");
 			
 			Class c = Class.forName(className);			
+            // newInstance()底层调用的是该类型的无参数构造方法
 			Object obj = c.newInstance();
 			
 			System.out.println(obj);
@@ -637,17 +638,17 @@ public class ThreadTest3 {
 
 
 
-#### 在java.lang,reflect.*包下
+### 在java.lang,reflect.*包下
 
 #### 相关类
 
-java.lang.Class 代表字节码文件，代表一个类型
++ va.lang.Class 代表字节码文件，代表一个类型
 
-java.land.reflect.Method 代表字节码中的方法字节码
++ va.land.reflect.Method 代表字节码中的方法字节码
 
-java.land.reflect.Field 代表字节码中的属性字节码
++ va.land.reflect.Field 代表字节码中的属性字节码
 
-java.land.reflect.Constructor 代表字节码中的构造方法字节码
++ va.land.reflect.Constructor 代表字节码中的构造方法字节码
 
 ```java
 java.land.Class;
@@ -671,9 +672,11 @@ public class User {
 }
 ```
 
-#### 获取class的三种方式
+### 获取class的三种方式
 
-##### Class.forName()
+#### Class.forName()
+
++ forName() 只让一个类的静态代码块执行
 
 ```java
 public claass ReflectTest01 {
@@ -698,8 +701,6 @@ public claass ReflectTest01 {
 
 
 
-###### forName() 只让一个类的静态代码块执行
-
 **重点：**
 
 + 如果只希望一个类的静态代码块执行，其他代码一律不执行，可以使用Class.forName();
@@ -709,7 +710,7 @@ public claass ReflectTest01 {
 public claass ReflectTest04 {
 	public static void main(String [] args) {
         try {
-            Class.forName("java.lang.String")
+           Class c1 =  Class.forName("java.lang.String")
         } catch( ClassNotFoundException e) {
 			e.prontStackTrace()
         }
@@ -727,7 +728,7 @@ class MyClass {
 
 
 
-##### getClass()
+#### getClass()
 
 ![](https://raw.githubusercontent.com/chuerFeng/pictureBed/master/img/20210115151217.png)
 
@@ -748,7 +749,7 @@ public claass ReflectTest01 {
 
 
 
-##### .class属性
+#### .class属性
 
 ```java
 Class z = String.class;
@@ -761,6 +762,277 @@ Class z = Double.class;
 
 
 
+
+### 利用反射机制反编译Field
+
+```java
+package testStudy;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.ResourceBundle;
+
+public class ReflectTest03 {
+
+	public static void main(String[] args) throws Exception {
+		/**
+		* getModifiers() 获取修饰符
+		* getType() 获取类型
+		*/
+		StringBuilder stringBuilder = new StringBuilder();		
+		Class userClass = Class.forName("testStudy.User");
+		
+		stringBuilder.append( Modifier.toString(userClass.getModifiers()) + " class " + userClass.getSimpleName() + "{ \n" );
+		
+		Field[] fieldClass = userClass.getDeclaredFields();
+		
+		for(Field f: fieldClass) {
+			stringBuilder.append("\t");
+			stringBuilder.append(Modifier.toString(f.getModifiers()));
+			stringBuilder.append(" ");
+			stringBuilder.append(f.getType().getSimpleName()+ " ");
+			stringBuilder.append(f.getName() + " = ");
+			stringBuilder.append("; \n");
+		}
+		
+		stringBuilder.append("}");
+		
+		
+		System.out.println(stringBuilder.toString());
+	}
+
+}
+
+```
+
+
+
+### 反射机制访问属性(公私有)
+
++ field.setAccessible(true)  访问私有
+
+```java
+package testStudy;
+
+import java.lang.reflect.Field;
+
+public class ReflectTest04 {
+
+	public static void main(String[] args) throws Exception {
+		
+		Class c =  Class.forName("testStudy.User");
+	
+		Object obj = c.newInstance();
+		
+		Field noField = c.getDeclaredField("no");
+		// 给obj对象(User对象)的no属性赋值
+		/*  虽然使用了反射机制，但是三要素缺一不可：
+		 *  要素1： obj的对象
+		 *  要素2： no属性
+		 *  要素3： 2222值
+		 * */
+		noField.set(obj, 2222);
+		
+		System.out.println(noField.get(obj));
+		
+		/*访问私有属性*/
+		Field nameField = c.getDeclaredField("name");
+		nameField.setAccessible(true); // 打破封装，使私有暴露，这样设置后在外部可以访问private
+		nameField.set(obj, "name");
+		System.out.println( nameField.get(obj) );
+		
+	}
+
+}
+
+```
+
+
+
+### 反射机制调用方法(重点)
+
+要素分析
+
++ 对象UserService
++ login方法
++ 实参列表
++ 返回值
+
+```java
+public class MethodsTest {
+
+	public static void main(String[] args) throws Exception {
+		Class c = Class.forName("testStudy.User");
+		Object obj = c.newInstance();
+		
+		Method loginMethod = c.getDeclaredMethod("login", String.class, String.class);
+		Object reVal = loginMethod.invoke(obj, "admin", "1234");
+		
+		
+		System.out.println(reVal);
+	}
+}
+```
+
+```java
+// User.class
+package testStudy;
+
+import javax.security.auth.login.LoginContext;
+
+public class User {
+/*	public User() {
+		System.out.println("无参数构造");
+	}
+	*/
+	
+	private String name = "name";
+	int no = 1;
+	public static Boolean man = true;
+	
+	
+	public Boolean login(String name, String pass) {
+		if (name == "admin" && pass == "123") {
+			System.out.println("登陆成功");
+			return true;
+		}
+		
+		System.out.println("登陆失败");
+		return false;
+	}
+	
+	public void logOut() {
+		System.out.println("退出");
+	}
+}
+
+```
+
+
+
+### 利用反射机制调用构造方法实例化java对象(非重点)
+
+```java
+public class ReflectTest05 {
+
+	public static void main(String[] args) throws Exception {
+		Class userM = Class.forName("testStudy.User");
+//		Object o = userM.newInstance();
+	
+		Constructor con = userM.getDeclaredConstructor(int.class);
+		
+		Object newObj = con.newInstance(1);
+		System.out.println(newObj);
+		
+	}
+
+}
+
+```
+
+
+
+## 注解 
+
++ 注解，或者叫做注释  
+
++ 注解Annotation是一种引用数据类型，编译之后也是生成xxx.class文件
+
+
+
+### @Annotation
+
+```java
+// AnnonationTest01.java
+/*  自定义注解
+	[修饰符列表] @interface 注解类型名 {	
+	}
+	注解可以出现在类上，属性上，方法上...还可以出现在注解类型上
+**/
+
+@MyAnnotation
+public class ReflectTest05 {
+	public static void main(String[] args) throws Exception {
+		public int no;
+        
+        public ReflectTest05( @MyAnnotation int no) {}
+        
+        @MyAnnotation
+        public static void m1() {}
+        
+        public void m2() {
+            @MyAnnotation
+        }
+	}
+}
+
+```
+
+```java
+// MyAnnotation.java
+public @interface MyAnnotation{};
+```
+
+
+
+### @Override注解
+
++ @Override只能注解方法
+
++ @Override是给编译器参考，和运行阶段没有关系
+
+凡是java中的方法带有这个注解的，编译器都会进行编译检查，如果这个方法不是重写父类的方法，编译器报错。
+
+
+
+### 元注解
+
+#### @Target
+
+标注`被标注的注解`可以出现在哪些位置
+
+```java
+@Target(ElementType.METHOD) // 表示被标注的注解只能出现在方法上
+```
+
+
+
+#### @Retention
+
+标注`被标注的注解`最终保存在哪里
+
+```java
+@Retention(RetentionPolicy.SOURC) // 表示该注解只能出现在java源文件
+@Retention(RetentionPolicy.CLASS) // 表示该注解保存在class文件中
+@Retention(RetentionPolicy.RUNTIME) // 表示该注解保存在class文件中,并且可以被反射机制所读取
+```
+
+
+
+```java
+// MyAnnotaion.java
+/*只允许MyAnnotation注解可以标注类，方法*/
+@Target({ElementType.TYPE, ElementType.METHOD})
+/*希望MyAnnotation注解可以被反射*/
+@Retention(RetentionPolicy.RUNTIME)
+public @interator MyAnnotation {
+}
+```
+
+
+
+### @Deprecated
+
+用@Deprecated注释的程序元素会被提示已过时
+
+```java
+@deprecated
+public static void m1() {}
+```
+
+
+
+## 扩展
 
 ### 获取路径
 
@@ -817,11 +1089,13 @@ classLoader
 
 #### JDK自带了3个类加载器
 
-+ 启动类加载器
-+ 扩展类加载器
-+ 应用类加载器
++ 启动类加载器: rt.jar
++ 扩展类加载器: ext/*.jar
++ 应用类加载器: classPath
 
-#### 假设有这样一段代码
+
+
+假设有这样一段代码
 
 ```
 String  s = "abc";
@@ -848,4 +1122,37 @@ String  s = "abc";
       **会通过“应用类加载器”加载**
 
       应用类加载器专门加载： classpath(window属性环境变量)中的jar包(class文件)
+
+#### 双亲委派机制
+
+java为了保证安全，使用了双亲委派机制
+
+优先从启动类加载器中加载，这个称为“父”
+
+“父”无法加载到，再从扩展类加载器中加载，这个称为“母”。
+
+“双亲委派”，如果都加载不到，才会考虑从应用类加载器中加载，直到加载为止。
+
+
+
+### 可变长参数 ...
+
+```java
+public class ArgsTest {
+
+	public static void main(String[] args) {
+		
+		m("111", 1);
+		m("111",1, 2);
+		m("111",1, 2, 3);
+	}
+	/* 可变长参数只能有一个
+	*  可变长参数只能放在最后一个
+	**/
+	public static void m(string s, int... args ) {
+		System.out.println("m方法执行了···");
+	}
+
+}
+```
 
